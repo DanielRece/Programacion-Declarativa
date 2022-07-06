@@ -7,7 +7,7 @@ La práctica está comentada explicando qué hace cada función empleada.-}
 -- Definición de tipos, al final no hay data
 -- La idea era implementar una data que permitiese pintar el sudoku por pantalla, pero se nos atragantó.
 import Data.List
-type Sudoku a = [Fila a] 
+type Sudoku a = [Fila a]
 type Cuadricula = Sudoku Valor
 
 type Valor = Char
@@ -32,19 +32,19 @@ columnas = transpose
 -- Esta función devuelve el sudoku por cajas (por filas)
 
 -- *función auxiliar* Esta función recibe un natural y una lista y divide la lista en listas de longitud el natural
-agrupar_n :: Int -> [a] -> [[a]]
-agrupar_n n [] = []
-agrupar_n n xs = take n xs : agrupar_n n (drop n xs)
+agruparN :: Int -> [a] -> [[a]]
+agruparN _ [] = []
+agruparN n xs = take n xs : agruparN n (drop n xs)
 
 -- *función principal*
 cajas :: Sudoku a -> [Caja a]
 cajas = dividir . map columnas . agrupar
-	where 
-		agrupar = (agrupar_n 3). map (agrupar_n 3 )
-		{- divido las filas en elementos de 3 en 3 y luego tomo esos elementos también de 3 en 3.
-		esto me da una lista de listas de 3 listas de 3 elementos -}
-		dividir = map concat. concat 
-		{- esta función está para quitar las listas sobrantes por la anterior -}
+    where
+        agrupar = agruparN 3. map (agruparN 3 )
+        {- divido las filas en elementos de 3 en 3 y luego tomo esos elementos también de 3 en 3.
+        esto me da una lista de listas de 3 listas de 3 elementos -}
+        dividir = map concat. concat
+        {- esta función está para quitar las listas sobrantes por la anterior -}
 
 
 
@@ -66,44 +66,44 @@ unico _ = False
 -- Comprueba que no se repiten elementos en una lista, en este caso devuelve True
 sinRepes :: Eq a => [a] -> Bool
 sinRepes [] = True
-sinRepes (x:xs) = not(elem x xs) && sinRepes xs
+sinRepes (x:xs) = notElem x xs && sinRepes xs
 
 -- Mete en cada casilla vacia la lista entera de valores
 rellenar :: Cuadricula -> Sudoku Posibilidades
 rellenar =  map (map relleno)
-	where
-		relleno casilla = if vacio casilla then valores else [casilla] 
-		{- esta función está para adaptar el tipo en caso de haber un valor 
-		o para rellenar con todos los valores en caso contrario -}
+    where
+        relleno casilla = if vacio casilla then valores else [casilla]
+        {- esta función está para adaptar el tipo en caso de haber un valor 
+        o para rellenar con todos los valores en caso contrario -}
 
 -- Saca en una lista todas las posibles combinaciones tomando 1 elemento de cada lista de las dadas
 combinaciones :: [[a]] -> [[a]]
 combinaciones [] = [[]]
-combinaciones (xs:xss) = [y:ys | y <- xs, ys <- combinaciones xss] 
+combinaciones (xs:xss) = [y:ys | y <- xs, ys <- combinaciones xss]
 
 -- Dada una matriz de casillas de tipo lista, devuelve una lista con todas las posibles matrices tienendo en cada casilla un solo elemento
 colapsar :: Sudoku [a] -> [Sudoku a]
-colapsar = combinaciones . map combinaciones 
+colapsar = combinaciones . map combinaciones
 
 -- *función auxiliar* Devuelve todos los elementos de la primera lista que no estén en la segunda a menos que la primera solo contenga un elemento
 salvo :: Posibilidades -> Posibilidades -> Posibilidades
-salvo [] ys = []
-salvo (x:[]) ys = x:[]
+salvo [] _ = []
+salvo [x] _ = [x]
 salvo (x:xs) ys
-	| elem x ys = salvo xs ys
-	|otherwise = x:salvo xs ys
+    | x `elem` ys = salvo xs ys
+    |otherwise = x:salvo xs ys
 
 -- *función auxiliar* Dada una fila, columna, caja, quita todos los elementos ya determinados para reducir las opciones de colapso en las casillas
 reducir :: Fila Posibilidades -> Fila Posibilidades
 reducir xss = [xs `salvo` determinados | xs <- xss]
-	where 
-		determinados = concat (filter unico xss)
+    where
+        determinados = concat (filter unico xss)
 
 -- *funcion principal* Aplica la función reducir a cada una de las casillas teniendo en cuenta que cada casilla esta en una fila, en una columna y en una caja
 reducPos :: Sudoku Posibilidades -> Sudoku Posibilidades
 reducPos =  reducSobre cajas . reducSobre columnas . reducSobre filas
-	where 
-		reducSobre f = f . map reducir . f
+    where
+        reducSobre f = f . map reducir . f
 
 -- Devuelve True si todos los valores están determinados (una única opción)
 sudokuCompleto :: Sudoku Posibilidades -> Bool
@@ -116,8 +116,8 @@ sudokuIrrellenable = any (any null)
 -- *función auxiliar* Aplica la función consistente a las filas, columnas y cajas para comprobar que no se repiten elementos
 sinDuplicados :: Sudoku Posibilidades -> Bool
 sinDuplicados sudoku =  all sinDuplicadosAux (filas sudoku) && all sinDuplicadosAux (columnas sudoku) && all sinDuplicadosAux (cajas sudoku)
-	where
-		sinDuplicadosAux = sinRepes . concat . filter unico
+    where
+        sinDuplicadosAux = sinRepes . concat . filter unico
 
 -- Un sudoku es irresoluble si alguna casilla no se puede rellenar o si se repite algún elemento en una fila, columna o caja
 irresoluble :: Sudoku Posibilidades -> Bool
@@ -128,19 +128,19 @@ irresoluble sudoku = sudokuIrrellenable sudoku || not (sinDuplicados sudoku)
 -- Va rellenando el sudoku paso por paso siempre que sea posible
 completar :: Sudoku Posibilidades -> [Cuadricula]
 completar sudoku
-	| irresoluble sudoku = []
-	| sudokuCompleto sudoku = colapsar sudoku
-	| otherwise = [g | sudoku' <- colapsoLocal sudoku , g <- completar (reducPos sudoku')]
+    | irresoluble sudoku = []
+    | sudokuCompleto sudoku = colapsar sudoku
+    | otherwise = [g | sudoku' <- colapsoLocal sudoku , g <- completar (reducPos sudoku')]
 
 {- Funciona igual que colapsar pero colapsando un solo elemento para poder ir comprobando en cada momento 
  si sigue siedo resoluble el sudoku (mejora eficiencia al no tener que sacarlos todos y comprobar luego)-}
 colapsoLocal :: Sudoku Posibilidades -> [Sudoku Posibilidades]
 colapsoLocal sudoku = [filas1 ++ [fila1 ++ [determinado] : fila2] ++ filas2 | determinado <- determinados]
-	where
-		(filas1,fila:filas2) = break(any(not . unico)) sudoku
-		{- break devuelve un par con 2 listas. Aplica la función que recibe como parámetro
-		a cada elemento de la lista proporcionada y toma como punto de corte el primer true que devuelve-}
-		(fila1,determinados:fila2)= break(not . unico) fila
+    where
+        (filas1,fila:filas2) = span (all unico) sudoku
+        {- break devuelve un par con 2 listas. Aplica la función que recibe como parámetro
+        a cada elemento de la lista proporcionada y toma como punto de corte el primer true que devuelve-}
+        (fila1,determinados:fila2)= span unico fila
 
 -- Resuelve el sudoku proporcionado si es posible, en caso contrario devuelve una lista vacia
 solucion :: Cuadricula -> [Cuadricula]
@@ -152,7 +152,7 @@ main = do putStr "Dame el nombre del fichero de entrada \n"
           contenido <- readFile inNombre
           putStr "Dame el nombre del fichero de salida \n"
           outNombre <- getLine
-	  putStr "Si quieres generar sudokus, escribe cuántos, en caso contrario, escibe 1 \n"
+          putStr "Si quieres generar sudokus, escribe cuántos, en caso contrario, escribe cúantas soluciones quieres obtener \n"
           n <- getLine
-          let salida = concat (take (read n::Int) (solucion (lines contenido))) 
+          let salida = concat (take (read n::Int) (solucion (lines contenido)))
           writeFile outNombre (unlines salida)
