@@ -6,7 +6,7 @@ La práctica está comentada explicando qué hace cada función empleada.-}
 
 -- Definición de tipos, al final no hay data
 -- La idea era implementar una data que permitiese pintar el sudoku por pantalla, pero se nos atragantó.
-
+import Data.List
 type Sudoku a = [Fila a] 
 type Cuadricula = Sudoku Valor
 
@@ -88,10 +88,10 @@ colapsar = combinaciones . map combinaciones
 -- *función auxiliar* Devuelve todos los elementos de la primera lista que no estén en la segunda a menos que la primera solo contenga un elemento
 salvo :: Posibilidades -> Posibilidades -> Posibilidades
 salvo [] ys = []
-salvo x:[] ys = x:[]
+salvo (x:[]) ys = x:[]
 salvo (x:xs) ys
 	| elem x ys = salvo xs ys
-	|otherwise = x:elem xs ys
+	|otherwise = x:salvo xs ys
 
 -- *función auxiliar* Dada una fila, columna, caja, quita todos los elementos ya determinados para reducir las opciones de colapso en las casillas
 reducir :: Fila Posibilidades -> Fila Posibilidades
@@ -152,12 +152,7 @@ main = do putStr "Dame el nombre del fichero de entrada \n"
           contenido <- readFile inNombre
           putStr "Dame el nombre del fichero de salida \n"
           outNombre <- getLine
-		  putStr "Si quieres generar sudokus, escribe cuántos, en caso contrario, escibe cuántas soluciones deseas obtener\n"
+	  putStr "Si quieres generar sudokus, escribe cuántos, en caso contrario, escibe 1 \n"
           n <- getLine
           let salida = concat (take (read n::Int) (solucion (lines contenido))) 
           writeFile outNombre (unlines salida)
-
-
-
-
-
